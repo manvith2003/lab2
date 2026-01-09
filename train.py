@@ -3,7 +3,7 @@ import json
 import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import Ridge
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline
 import os
@@ -20,10 +20,11 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # Model pipeline
-model = Pipeline([
-    ("scaler", StandardScaler()),
-    ("ridge", Ridge(alpha=0.1))
-])
+model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=15,
+    random_state=42
+)
 
 # Train
 model.fit(X_train, y_train)
