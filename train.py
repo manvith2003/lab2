@@ -22,7 +22,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 # Model pipeline
 model = Pipeline([
     ("scaler", StandardScaler()),
-    ("ridge", Ridge(alpha=0.5))
+    ("ridge", Ridge(alpha=0.1))
 ])
 
 # Train
