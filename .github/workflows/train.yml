@@ -30,3 +30,43 @@ jobs:
       with:
         name: model-and-results
         path: outputs/
+  deploy:
+    needs: train
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: model-and-results
+        path: outputs
+
+    - name: Read metrics
+      id: metrics
+      run: |
+        echo "r2=$(jq .R2 outputs/results.json)" >> $GITHUB_OUTPUT
+        echo "mse=$(jq .MSE outputs/results.json)" >> $GITHUB_OUTPUT
+
+    - name: Compare R2 score
+      run: |
+        echo "Current R2: ${{ steps.metrics.outputs.r2 }}"
+        echo "Best R2: ${{ vars.BEST_R2 }}"
+
+        if (( $(echo "${{ steps.metrics.outputs.r2 }} <= ${{ vars.BEST_R2 }}" | bc -l) )); then
+          echo "<ROLL_NO>----Metric did not improve"
+          exit 0
+        fi
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/wine-api:latest .
+        docker push ${{ secrets.DOCKER_USERNAME }}/wine-api:latest
