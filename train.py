@@ -41,6 +41,7 @@ print(f"R2 Score: {r2}")
 
 # Save outputs
 os.makedirs("outputs", exist_ok=True)
+os.makedirs("app/artifacts", exist_ok=True)
 
 joblib.dump(model, "outputs/model.pkl")
 
@@ -51,6 +52,15 @@ results = {
 
 with open("outputs/results.json", "w") as f:
     json.dump(results, f, indent=4)
+
+# Save metrics for Jenkins pipeline (Lab 6)
+metrics = {
+    "accuracy": r2,
+    "mse": mse
+}
+
+with open("app/artifacts/metrics.json", "w") as f:
+    json.dump(metrics, f, indent=4)
 
 # Write metrics to GitHub Actions Job Summary
 github_summary = os.getenv("GITHUB_STEP_SUMMARY")
