@@ -1,5 +1,11 @@
 pipeline {
-    agent any
+
+    agent {
+        docker {
+            image 'python:3.10'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
         DOCKER_IMAGE = "manvith2003/wine-api"
@@ -18,7 +24,7 @@ pipeline {
         stage('Setup Python Virtual Environment') {
             steps {
                 sh '''
-                python3 -m venv venv
+                python -m venv venv
                 . venv/bin/activate
                 pip install --upgrade pip
                 pip install -r requirements.txt
@@ -57,7 +63,7 @@ pipeline {
 
                         if (env.CURRENT_R2.toFloat() > BEST_R2.toFloat()) {
                             env.BUILD_IMAGE = "true"
-                            echo "New model improved. Will build Docker image."
+                            echo "New model improved. Docker image will be built."
                         } else {
                             env.BUILD_IMAGE = "false"
                             echo "Model did not improve. Skipping Docker build."
@@ -67,7 +73,7 @@ pipeline {
             }
         }
 
-        // ---------------- 6. Build Docker Image ----------------
+        // ---------------- 6. Build Docker Image (Conditional) ----------------
         stage('Build Docker Image') {
             when {
                 expression { env.BUILD_IMAGE == "true" }
@@ -78,7 +84,7 @@ pipeline {
             }
         }
 
-        // ---------------- 7. Push Docker Image ----------------
+        // ---------------- 7. Push Docker Image (Conditional) ----------------
         stage('Push Docker Image') {
             when {
                 expression { env.BUILD_IMAGE == "true" }
@@ -106,4 +112,3 @@ pipeline {
         }
     }
 }
-
