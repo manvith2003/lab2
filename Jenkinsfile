@@ -13,31 +13,17 @@ pipeline {
             }
         }
 
-        stage('Install Python') {
+        stage('Train Model in Python Container') {
             steps {
                 sh '''
-                apt-get update
-                apt-get install -y python3 python3-venv python3-pip docker.io
-                '''
-            }
-        }
-
-        stage('Setup Python Virtual Environment') {
-            steps {
-                sh '''
-                python3 -m venv venv
-                . venv/bin/activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
-                '''
-            }
-        }
-
-        stage('Train Model') {
-            steps {
-                sh '''
-                . venv/bin/activate
-                python train.py
+                docker run --rm \
+                  -v $(pwd):/app \
+                  -w /app \
+                  python:3.10 \
+                  bash -c "
+                  pip install -r requirements.txt &&
+                  python train.py
+                  "
                 '''
             }
         }
