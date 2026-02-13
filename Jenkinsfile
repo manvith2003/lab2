@@ -1,11 +1,5 @@
 pipeline {
-
-    agent {
-        docker {
-            image 'python:3.10'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
         DOCKER_IMAGE = "manvith2003/wine-api"
@@ -13,18 +7,25 @@ pipeline {
 
     stages {
 
-        // ---------------- 1. Checkout ----------------
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        // ---------------- 2. Setup Python Virtual Environment ----------------
+        stage('Install Python') {
+            steps {
+                sh '''
+                apt-get update
+                apt-get install -y python3 python3-venv python3-pip docker.io
+                '''
+            }
+        }
+
         stage('Setup Python Virtual Environment') {
             steps {
                 sh '''
-                python -m venv venv
+                python3 -m venv venv
                 . venv/bin/activate
                 pip install --upgrade pip
                 pip install -r requirements.txt
@@ -32,7 +33,6 @@ pipeline {
             }
         }
 
-        // ---------------- 3. Train Model ----------------
         stage('Train Model') {
             steps {
                 sh '''
@@ -42,7 +42,6 @@ pipeline {
             }
         }
 
-        // ---------------- 4. Read Accuracy ----------------
         stage('Read Accuracy') {
             steps {
                 script {
@@ -53,27 +52,23 @@ pipeline {
             }
         }
 
-        // ---------------- 5. Compare Accuracy ----------------
         stage('Compare Accuracy') {
             steps {
                 script {
                     withCredentials([string(credentialsId: 'best-accuracy', variable: 'BEST_R2')]) {
 
-                        echo "Stored Best R2: ${BEST_R2}"
-
                         if (env.CURRENT_R2.toFloat() > BEST_R2.toFloat()) {
                             env.BUILD_IMAGE = "true"
-                            echo "New model improved. Docker image will be built."
+                            echo "Model improved."
                         } else {
                             env.BUILD_IMAGE = "false"
-                            echo "Model did not improve. Skipping Docker build."
+                            echo "Model not improved."
                         }
                     }
                 }
             }
         }
 
-        // ---------------- 6. Build Docker Image (Conditional) ----------------
         stage('Build Docker Image') {
             when {
                 expression { env.BUILD_IMAGE == "true" }
@@ -84,7 +79,6 @@ pipeline {
             }
         }
 
-        // ---------------- 7. Push Docker Image (Conditional) ----------------
         stage('Push Docker Image') {
             when {
                 expression { env.BUILD_IMAGE == "true" }
@@ -105,7 +99,6 @@ pipeline {
         }
     }
 
-    // ---------------- Artifact Archiving ----------------
     post {
         always {
             archiveArtifacts artifacts: 'outputs/**', fingerprint: true
