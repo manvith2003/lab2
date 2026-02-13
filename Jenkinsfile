@@ -38,7 +38,8 @@ pipeline {
         stage('Read Accuracy') {
             steps {
                 script {
-                    def metrics = readJSON file: 'app/artifacts/metrics.json'
+                    def metricsJson = readFile(file: 'app/artifacts/metrics.json')
+                    def metrics = new groovy.json.JsonSlurper().parseText(metricsJson)
                     env.CURRENT_ACCURACY = metrics.accuracy.toString()
                     echo "Current Model Accuracy (R2 Score): ${env.CURRENT_ACCURACY}"
                 }
